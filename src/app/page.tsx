@@ -2,14 +2,15 @@ import Link from "next/link";
 import AppealComposer from "@/components/AppealComposer";
 import AppealListItem from "@/components/AppealListItem";
 import { getCurrentUser } from "@/lib/session";
-import { countComments, handlesFor, listAppeals } from "@/lib/store";
+import { commentCountsFor, handlesFor, listAppeals } from "@/lib/store";
 import { rankConcerns } from "@/lib/categories";
 
 export default async function Home() {
   const user = await getCurrentUser();
-  const appeals = listAppeals();
-  const handles = handlesFor(appeals.map((a) => a.authorId));
-  const concerns = rankConcerns(appeals, (id) => countComments(id));
+  const appeals = await listAppeals();
+  const counts = await commentCountsFor(appeals.map((a) => a.id));
+  const handles = await handlesFor(appeals.map((a) => a.authorId));
+  const concerns = rankConcerns(appeals, counts);
   const topScore = concerns[0]?.score ?? 1;
 
   return (
@@ -107,7 +108,7 @@ export default async function Home() {
                 <AppealListItem
                   appeal={appeal}
                   handle={handles.get(appeal.authorId) ?? "unknown"}
-                  commentCount={countComments(appeal.id)}
+                  commentCount={counts.get(appeal.id) ?? 0}
                 />
               </li>
             ))}

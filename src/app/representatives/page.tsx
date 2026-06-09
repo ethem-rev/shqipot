@@ -18,11 +18,11 @@ export const metadata = {
 
 export default async function RepresentativesPage() {
   const user = await getCurrentUser();
-  const candidates = listCandidates();
-  const counts = endorsementCounts();
-  const endorsed = user ? endorsedBy(user.id) : new Set<string>();
-  const handles = handlesFor(candidates.map((c) => c.userId));
-  const mine = user ? getCandidateByUser(user.id) : undefined;
+  const candidates = await listCandidates();
+  const counts = await endorsementCounts();
+  const endorsed = user ? await endorsedBy(user.id) : new Set<string>();
+  const handles = await handlesFor(candidates.map((c) => c.userId));
+  const mine = user ? await getCandidateByUser(user.id) : undefined;
 
   const ranked = [...candidates].sort(
     (a, b) =>

@@ -13,12 +13,12 @@ export default async function AppealPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const appeal = getAppeal(id);
+  const appeal = await getAppeal(id);
   if (!appeal) notFound();
 
   const user = await getCurrentUser();
-  const comments = listComments(id);
-  const handles = handlesFor([
+  const comments = await listComments(id);
+  const handles = await handlesFor([
     appeal.authorId,
     ...comments.map((c) => c.authorId),
   ]);

@@ -4,7 +4,7 @@ import AppealListItem from "@/components/AppealListItem";
 import CandidateCard from "@/components/CandidateCard";
 import { getCurrentUser } from "@/lib/session";
 import {
-  countComments,
+  commentCountsFor,
   endorsedBy,
   endorsementCounts,
   handlesFor,
@@ -34,12 +34,15 @@ export default async function CategoryPage({
 
   const cat = getCategory(category);
   const user = await getCurrentUser();
-  const appeals = listAppeals().filter((a) => categorize(a) === category);
+  const appeals = (await listAppeals()).filter(
+    (a) => categorize(a) === category,
+  );
+  const commentCounts = await commentCountsFor(appeals.map((a) => a.id));
 
   // Representatives who chose to champion this need, ranked by support.
-  const counts = endorsementCounts();
-  const endorsed = user ? endorsedBy(user.id) : new Set<string>();
-  const reps = listCandidates()
+  const counts = await endorsementCounts();
+  const endorsed = user ? await endorsedBy(user.id) : new Set<string>();
+  const reps = (await listCandidates())
     .filter((c) => c.categoryKey === category)
     .sort(
       (a, b) =>
@@ -47,7 +50,7 @@ export default async function CategoryPage({
         a.createdAt - b.createdAt,
     );
 
-  const handles = handlesFor([
+  const handles = await handlesFor([
     ...appeals.map((a) => a.authorId),
     ...reps.map((c) => c.userId),
   ]);
@@ -132,7 +135,7 @@ export default async function CategoryPage({
               <AppealListItem
                 appeal={appeal}
                 handle={handles.get(appeal.authorId) ?? "unknown"}
-                commentCount={countComments(appeal.id)}
+                commentCount={commentCounts.get(appeal.id) ?? 0}
                 showCategory={false}
               />
             </li>

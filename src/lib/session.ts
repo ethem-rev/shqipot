@@ -58,7 +58,7 @@ export async function getSessionUser(): Promise<StoredUser | null> {
   if (!raw) return null;
   const [id, secret] = raw.split(":");
   if (!id || !secret) return null;
-  const user = getUserById(id);
+  const user = await getUserById(id);
   if (!user || user.secret !== secret) return null;
   return user;
 }

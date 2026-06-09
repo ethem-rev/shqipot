@@ -201,7 +201,7 @@ export type Concern = {
 // discussion (comments) they attract.
 export function rankConcerns(
   appeals: Appeal[],
-  commentCountFor: (appealId: string) => number,
+  commentCounts: Map<string, number>,
 ): Concern[] {
   const groups = new Map<string, Appeal[]>();
   for (const a of appeals) {
@@ -214,7 +214,7 @@ export function rankConcerns(
   const concerns: Concern[] = [];
   for (const [key, group] of groups) {
     const commentCount = group.reduce(
-      (sum, a) => sum + commentCountFor(a.id),
+      (sum, a) => sum + (commentCounts.get(a.id) ?? 0),
       0,
     );
     concerns.push({

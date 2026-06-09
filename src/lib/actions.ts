@@ -53,14 +53,14 @@ export async function loginWithUsername(
     return { error: "Passphrase must be at least 6 characters." };
   }
 
-  const existing = getUserByHandle(handle);
+  const existing = await getUserByHandle(handle);
   if (existing) {
     if (!existing.passHash || !verifyPassphrase(passphrase, existing.passHash)) {
       return { error: "Wrong username or passphrase." };
     }
     await createSession(existing);
   } else {
-    const user = createUser({
+    const user = await createUser({
       handle,
       protected: true,
       passHash: hashPassphrase(passphrase),
@@ -77,14 +77,14 @@ export async function continueAnonymously(): Promise<void> {
   let handle = "";
   for (let i = 0; i < 5; i++) {
     const candidate = `anon-${randomBytes(4).toString("hex")}`;
-    if (!getUserByHandle(candidate)) {
+    if (!(await getUserByHandle(candidate))) {
       handle = candidate;
       break;
     }
   }
   if (!handle) handle = `anon-${randomBytes(8).toString("hex")}`;
 
-  const user = createUser({
+  const user = await createUser({
     handle,
     protected: false,
     passHash: null,
@@ -116,7 +116,7 @@ export async function createAppeal(
     return { error: "Please write your appeal (up to 5000 characters)." };
   }
 
-  const appeal = storeCreateAppeal({ authorId: user.id, title, body });
+  const appeal = await storeCreateAppeal({ authorId: user.id, title, body });
   revalidatePath("/");
   redirect(`/appeals/${appeal.id}`);
 }
@@ -132,13 +132,13 @@ export async function createComment(
   const rawParent = String(formData.get("parentId") ?? "");
   const body = String(formData.get("body") ?? "").trim();
 
-  if (!appealId || !getAppeal(appealId)) {
+  if (!appealId || !(await getAppeal(appealId))) {
     return { error: "That appeal no longer exists." };
   }
 
   let parentId: string | null = null;
   if (rawParent) {
-    const parent = getComment(rawParent);
+    const parent = await getComment(rawParent);
     if (!parent || parent.appealId !== appealId) {
       return { error: "The comment you're replying to no longer exists." };
     }
@@ -149,7 +149,7 @@ export async function createComment(
     return { error: "Comment must be between 1 and 2000 characters." };
   }
 
-  storeCreateComment({ appealId, authorId: user.id, parentId, body });
+  await storeCreateComment({ appealId, authorId: user.id, parentId, body });
   revalidatePath(`/appeals/${appealId}`);
   return { ok: true };
 }
@@ -162,7 +162,7 @@ export async function updateAppeal(
   if (!user) redirect("/login");
 
   const id = String(formData.get("id") ?? "");
-  const appeal = getAppeal(id);
+  const appeal = await getAppeal(id);
   if (!appeal) return { error: "That appeal no longer exists." };
   if (appeal.authorId !== user.id) {
     return { error: "You can only edit your own appeal." };
@@ -177,7 +177,7 @@ export async function updateAppeal(
     return { error: "Please write your appeal (up to 5000 characters)." };
   }
 
-  storeUpdateAppeal(id, { title, body });
+  await storeUpdateAppeal(id, { title, body });
   revalidatePath("/");
   revalidatePath(`/appeals/${id}`);
   return { ok: true };
@@ -188,9 +188,9 @@ export async function deleteAppeal(formData: FormData): Promise<void> {
   if (!user) redirect("/login");
 
   const id = String(formData.get("id") ?? "");
-  const appeal = getAppeal(id);
+  const appeal = await getAppeal(id);
   if (appeal && appeal.authorId === user.id) {
-    storeDeleteAppeal(id);
+    await storeDeleteAppeal(id);
   }
   revalidatePath("/");
   redirect("/");
@@ -204,7 +204,7 @@ export async function updateComment(
   if (!user) redirect("/login");
 
   const id = String(formData.get("id") ?? "");
-  const comment = getComment(id);
+  const comment = await getComment(id);
   if (!comment) return { error: "That comment no longer exists." };
   if (comment.authorId !== user.id) {
     return { error: "You can only edit your own comment." };
@@ -215,7 +215,7 @@ export async function updateComment(
     return { error: "Comment must be between 1 and 2000 characters." };
   }
 
-  storeUpdateComment(id, body);
+  await storeUpdateComment(id, body);
   revalidatePath(`/appeals/${comment.appealId}`);
   return { ok: true };
 }
@@ -225,9 +225,9 @@ export async function deleteComment(formData: FormData): Promise<void> {
   if (!user) redirect("/login");
 
   const id = String(formData.get("id") ?? "");
-  const comment = getComment(id);
+  const comment = await getComment(id);
   if (comment && comment.authorId === user.id) {
-    storeDeleteComment(id);
+    await storeDeleteComment(id);
     revalidatePath(`/appeals/${comment.appealId}`);
   }
 }
@@ -252,7 +252,7 @@ export async function applyToRepresent(
     return { error: "Your statement must be between 10 and 600 characters." };
   }
 
-  upsertCandidate(user.id, { statement, categoryKey });
+  await upsertCandidate(user.id, { statement, categoryKey });
   revalidatePath("/representatives");
   revalidatePath(`/insights/${categoryKey}`);
   return { ok: true };
@@ -262,9 +262,9 @@ export async function withdrawCandidacy(): Promise<void> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const candidate = getCandidateByUser(user.id);
+  const candidate = await getCandidateByUser(user.id);
   if (candidate) {
-    storeDeleteCandidate(candidate.id);
+    await storeDeleteCandidate(candidate.id);
     revalidatePath("/representatives");
     revalidatePath(`/insights/${candidate.categoryKey}`);
   }
@@ -275,12 +275,12 @@ export async function toggleEndorsement(candidateId: string): Promise<void> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const candidate = getCandidate(candidateId);
+  const candidate = await getCandidate(candidateId);
   if (!candidate) return;
   // No self-endorsement — legitimacy should come from others.
   if (candidate.userId === user.id) return;
 
-  storeToggleEndorsement(candidateId, user.id);
+  await storeToggleEndorsement(candidateId, user.id);
   revalidatePath("/representatives");
   revalidatePath(`/insights/${candidate.categoryKey}`);
 }

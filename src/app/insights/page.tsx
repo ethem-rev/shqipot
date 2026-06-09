@@ -1,14 +1,18 @@
 import Link from "next/link";
-import { countComments, listAppeals } from "@/lib/store";
+import { commentCountsFor, listAppeals } from "@/lib/store";
 import { rankConcerns } from "@/lib/categories";
 
 export const metadata = {
   title: "Priorities — Shqipot",
 };
 
+// Always read live data from Supabase rather than prerendering at build time.
+export const dynamic = "force-dynamic";
+
 export default async function InsightsPage() {
-  const appeals = listAppeals();
-  const concerns = rankConcerns(appeals, (id) => countComments(id));
+  const appeals = await listAppeals();
+  const counts = await commentCountsFor(appeals.map((a) => a.id));
+  const concerns = rankConcerns(appeals, counts);
   const maxScore = concerns[0]?.score ?? 1;
   const totalAppeals = appeals.length;
 
