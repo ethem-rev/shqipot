@@ -31,6 +31,11 @@ export default function AppealComposer() {
         maxLength={5000}
         className="field resize-y"
       />
+      <input
+        name="tags"
+        placeholder="Tags (comma separated, e.g. roads, safety)"
+        className="field"
+      />
       {state.error ? (
         <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent-strong">
           {state.error}

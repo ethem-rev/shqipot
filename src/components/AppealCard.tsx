@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import CategoryChip from "./CategoryChip";
+import VoteButton from "./VoteButton";
 import { deleteAppeal, updateAppeal, type FormState } from "@/lib/actions";
 import { relativeTime } from "@/lib/format";
 
@@ -17,6 +18,10 @@ export default function AppealCard({
   editedAt,
   isOwner,
   categoryKey,
+  tags,
+  score,
+  userVote,
+  loggedIn,
 }: {
   id: string;
   title: string;
@@ -26,6 +31,10 @@ export default function AppealCard({
   editedAt?: number;
   isOwner: boolean;
   categoryKey: string;
+  tags: string[];
+  score: number;
+  userVote: number;
+  loggedIn: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [state, action, pending] = useActionState(updateAppeal, initial);
@@ -90,8 +99,14 @@ export default function AppealCard({
             maxLength={5000}
             className="field resize-y"
           />
+          <input
+            name="tags"
+            defaultValue={tags.join(", ")}
+            placeholder="Tags (comma separated)"
+            className="field"
+          />
           {state.error ? (
-            <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-accent-strong">
+            <p className="rounded-md bg-accent/10 px-3 py-2 text-sm text-accent-strong">
               {state.error}
             </p>
           ) : null}
@@ -113,17 +128,34 @@ export default function AppealCard({
           </div>
         </form>
       ) : (
-        <>
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight">
-            {title}
-          </h1>
-          <p className="whitespace-pre-wrap text-[15px] leading-relaxed">
-            {body}
-          </p>
-          <div>
-            <CategoryChip categoryKey={categoryKey} size="sm" />
+        <div className="flex gap-4">
+          <VoteButton
+            appealId={id}
+            score={score}
+            userVote={userVote}
+            loggedIn={loggedIn}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="mb-2">
+              <CategoryChip categoryKey={categoryKey} size="sm" />
+            </div>
+            <h1 className="text-2xl font-semibold leading-tight tracking-tight">
+              {title}
+            </h1>
+            <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed">
+              {body}
+            </p>
+            {tags.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {tags.map((t) => (
+                  <span key={t} className="tag">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
-        </>
+        </div>
       )}
     </article>
   );

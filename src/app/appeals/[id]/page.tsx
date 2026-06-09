@@ -4,7 +4,13 @@ import AppealCard from "@/components/AppealCard";
 import CommentForm from "@/components/CommentForm";
 import CommentItem, { type CommentNode } from "@/components/CommentItem";
 import { getCurrentUser } from "@/lib/session";
-import { getAppeal, handlesFor, listComments } from "@/lib/store";
+import {
+  appealScore,
+  getAppeal,
+  handlesFor,
+  listComments,
+  userVote,
+} from "@/lib/store";
 import { categorize } from "@/lib/categories";
 
 export default async function AppealPage({
@@ -18,6 +24,8 @@ export default async function AppealPage({
 
   const user = await getCurrentUser();
   const comments = await listComments(id);
+  const score = await appealScore(id);
+  const myVote = user ? await userVote(id, user.id) : 0;
   const handles = await handlesFor([
     appeal.authorId,
     ...comments.map((c) => c.authorId),
@@ -53,7 +61,7 @@ export default async function AppealPage({
   const authorHandle = handles.get(appeal.authorId) ?? "unknown";
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <Link
         href="/"
         className="text-sm text-muted transition hover:text-accent"
@@ -70,6 +78,10 @@ export default async function AppealPage({
         editedAt={appeal.editedAt}
         isOwner={!!user && appeal.authorId === user.id}
         categoryKey={categorize(appeal)}
+        tags={appeal.tags}
+        score={score}
+        userVote={myVote}
+        loggedIn={!!user}
       />
 
       <section className="flex flex-col gap-5">

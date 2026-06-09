@@ -22,8 +22,18 @@ export type Appeal = {
   authorId: string;
   title: string;
   body: string;
+  tags: string[];
   createdAt: number;
   editedAt?: number;
+};
+
+// A citizen vote on an appeal: +1 (up) or -1 (down). One per (appeal, user).
+export type AppealVote = {
+  id: string;
+  appealId: string;
+  userId: string;
+  value: number;
+  createdAt: number;
 };
 
 // A person who has stepped up to represent the protest. One per user.

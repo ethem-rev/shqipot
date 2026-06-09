@@ -17,7 +17,7 @@ export default async function InsightsPage() {
   const totalAppeals = appeals.length;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">
           What the movement is worried about

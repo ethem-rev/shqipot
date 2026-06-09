@@ -57,3 +57,13 @@ create table if not exists endorsements (
   unique ("candidateId", "userId")
 );
 create index if not exists endorsements_candidate_idx on endorsements ("candidateId");
+
+-- Citizen "support" upvotes on appeals (one per user per appeal).
+create table if not exists "appealVotes" (
+  id uuid primary key,
+  "appealId" uuid not null,
+  "userId" uuid not null,
+  "createdAt" bigint not null,
+  unique ("appealId", "userId")
+);
+create index if not exists appealvotes_appeal_idx on "appealVotes" ("appealId");

@@ -4,12 +4,14 @@ import AppealListItem from "@/components/AppealListItem";
 import CandidateCard from "@/components/CandidateCard";
 import { getCurrentUser } from "@/lib/session";
 import {
+  appealScoresFor,
   commentCountsFor,
   endorsedBy,
   endorsementCounts,
   handlesFor,
   listAppeals,
   listCandidates,
+  userVotesMap,
 } from "@/lib/store";
 import { CATEGORIES, categorize, getCategory } from "@/lib/categories";
 
@@ -38,6 +40,8 @@ export default async function CategoryPage({
     (a) => categorize(a) === category,
   );
   const commentCounts = await commentCountsFor(appeals.map((a) => a.id));
+  const scores = await appealScoresFor(appeals.map((a) => a.id));
+  const votes = user ? await userVotesMap(user.id) : new Map<string, number>();
 
   // Representatives who chose to champion this need, ranked by support.
   const counts = await endorsementCounts();
@@ -56,7 +60,7 @@ export default async function CategoryPage({
   ]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <Link
         href="/insights"
         className="text-sm text-muted transition hover:text-accent"
@@ -136,7 +140,9 @@ export default async function CategoryPage({
                 appeal={appeal}
                 handle={handles.get(appeal.authorId) ?? "unknown"}
                 commentCount={commentCounts.get(appeal.id) ?? 0}
-                showCategory={false}
+                score={scores.get(appeal.id) ?? 0}
+                userVote={votes.get(appeal.id) ?? 0}
+                loggedIn={!!user}
               />
             </li>
           ))}

@@ -31,10 +31,10 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col font-sans">
         <SiteHeader />
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
           {children}
         </main>
-        <footer className="mx-auto mt-4 w-full max-w-2xl border-t border-border px-4 py-8 text-center text-xs text-muted">
+        <footer className="mt-4 border-t border-border py-8 text-center text-xs text-muted">
           Speak freely. No names, no tracking required.
         </footer>
       </body>

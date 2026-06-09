@@ -15,6 +15,7 @@ import {
   getCandidateByUser,
   getComment,
   getUserByHandle,
+  setAppealVote as storeSetAppealVote,
   toggleEndorsement as storeToggleEndorsement,
   updateAppeal as storeUpdateAppeal,
   updateComment as storeUpdateComment,
@@ -33,6 +34,22 @@ import {
 export type FormState = { error?: string; ok?: boolean };
 
 const HANDLE_RE = /^[a-zA-Z0-9_-]{3,24}$/;
+
+// Parse a comma-separated tags field into a clean, deduped list.
+function parseTags(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const t = part.trim().replace(/^#+/, "").slice(0, 24);
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+    if (out.length >= 6) break;
+  }
+  return out;
+}
 
 // Log in to an existing username, or claim a new one. A username is always
 // protected by a passphrase so the same person can return later.
@@ -116,7 +133,13 @@ export async function createAppeal(
     return { error: "Please write your appeal (up to 5000 characters)." };
   }
 
-  const appeal = await storeCreateAppeal({ authorId: user.id, title, body });
+  const tags = parseTags(String(formData.get("tags") ?? ""));
+  const appeal = await storeCreateAppeal({
+    authorId: user.id,
+    title,
+    body,
+    tags,
+  });
   revalidatePath("/");
   redirect(`/appeals/${appeal.id}`);
 }
@@ -177,7 +200,8 @@ export async function updateAppeal(
     return { error: "Please write your appeal (up to 5000 characters)." };
   }
 
-  await storeUpdateAppeal(id, { title, body });
+  const tags = parseTags(String(formData.get("tags") ?? ""));
+  await storeUpdateAppeal(id, { title, body, tags });
   revalidatePath("/");
   revalidatePath(`/appeals/${id}`);
   return { ok: true };
@@ -283,4 +307,20 @@ export async function toggleEndorsement(candidateId: string): Promise<void> {
   await storeToggleEndorsement(candidateId, user.id);
   revalidatePath("/representatives");
   revalidatePath(`/insights/${candidate.categoryKey}`);
+}
+
+// Vote on an appeal: direction is +1 (up) or -1 (down). Called from the client.
+export async function voteOnAppeal(
+  appealId: string,
+  direction: number,
+): Promise<void> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  const appeal = await getAppeal(appealId);
+  if (!appeal) return;
+
+  await storeSetAppealVote(appealId, user.id, direction > 0 ? 1 : -1);
+  revalidatePath("/");
+  revalidatePath(`/appeals/${appealId}`);
 }

@@ -85,7 +85,7 @@ export async function createAppeal(
 
 export async function updateAppeal(
   id: string,
-  patch: { title: string; body: string },
+  patch: { title: string; body: string; tags: string[] },
 ): Promise<void> {
   const { error } = await supabase
     .from("appeals")
@@ -315,4 +315,99 @@ export async function toggleEndorsement(
   });
   if (res.error) throw new Error(res.error.message);
   return { endorsed: true };
+}
+
+// --- Appeal votes (up/down, net score) ---
+
+// Net score (sum of +1/-1) for a set of appeals.
+export async function appealScoresFor(
+  appealIds: string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (appealIds.length === 0) return map;
+  const { data, error } = await supabase
+    .from("appealVotes")
+    .select("appealId, value")
+    .in("appealId", appealIds);
+  if (error) throw new Error(error.message);
+  for (const row of data ?? []) {
+    map.set(row.appealId, (map.get(row.appealId) ?? 0) + (row.value ?? 0));
+  }
+  return map;
+}
+
+export async function appealScore(appealId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from("appealVotes")
+    .select("value")
+    .eq("appealId", appealId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).reduce((sum, r) => sum + (r.value ?? 0), 0);
+}
+
+// The user's vote direction (+1/-1) per appeal.
+export async function userVotesMap(userId: string): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("appealVotes")
+    .select("appealId, value")
+    .eq("userId", userId);
+  if (error) throw new Error(error.message);
+  const map = new Map<string, number>();
+  for (const row of data ?? []) map.set(row.appealId, row.value ?? 0);
+  return map;
+}
+
+export async function userVote(
+  appealId: string,
+  userId: string,
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("appealVotes")
+    .select("value")
+    .eq("appealId", appealId)
+    .eq("userId", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.value ?? 0;
+}
+
+// Set the user's vote to `value` (+1/-1). Clicking the same direction again
+// clears it (toggle off); the opposite direction switches it.
+export async function setAppealVote(
+  appealId: string,
+  userId: string,
+  value: number,
+): Promise<void> {
+  const { data: existing, error } = await supabase
+    .from("appealVotes")
+    .select("id, value")
+    .eq("appealId", appealId)
+    .eq("userId", userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+
+  if (existing) {
+    if (existing.value === value) {
+      const res = await supabase
+        .from("appealVotes")
+        .delete()
+        .eq("id", existing.id);
+      if (res.error) throw new Error(res.error.message);
+      return;
+    }
+    const res = await supabase
+      .from("appealVotes")
+      .update({ value })
+      .eq("id", existing.id);
+    if (res.error) throw new Error(res.error.message);
+    return;
+  }
+  const res = await supabase.from("appealVotes").insert({
+    id: randomUUID(),
+    appealId,
+    userId,
+    value,
+    createdAt: Date.now(),
+  });
+  if (res.error) throw new Error(res.error.message);
 }
